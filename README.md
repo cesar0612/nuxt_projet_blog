@@ -1,7 +1,5 @@
 # nuxt-course
 
-> Nuxt.js course for Udemy
-
 ## Build Setup
 
 ``` bash
