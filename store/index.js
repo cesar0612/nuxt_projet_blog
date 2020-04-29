@@ -89,12 +89,12 @@ const createStore = () => {
           })
           .then(result => {
             vuexContext.commit("setToken", result.idToken);
-            localStorage.setItem("token", result.idToken);
+            localStorage.setItem("token", result.idToken); //Window.localStorage ,La propriété localStorage vous permet d'accéder à un objet local Storage. Le localStorage est similaire au sessionStorage. La seule différence : les données stockées dans le localStorage n'ont pas de délai d'expiration, alors que les données stockées dans le sessionStorage sont nettoyées quand la session navigateur prend fin — donc quand on ferme le navigateur.
             localStorage.setItem(
               "tokenExpiration",
               new Date().getTime() + result.expiresIn * 1000
             );
-            vuexContext.dispatch("setLogoutTimer", result.expiresIn * 1000);
+            vuexContext.dispatch("setLogoutTimer", result.expiresIn * 1000);//*1000 because setTimeout is in milliseconds
           })
           .catch(e => console.log(e));
       },
