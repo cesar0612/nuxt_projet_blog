@@ -1,4 +1,5 @@
 import Vuex from "vuex";
+import Cookie from 'js-cookie';
 
 const createStore = () => {
   return new Vuex.Store({
@@ -92,26 +93,52 @@ const createStore = () => {
             localStorage.setItem("token", result.idToken); //Window.localStorage ,La propriété localStorage vous permet d'accéder à un objet local Storage. Le localStorage est similaire au sessionStorage. La seule différence : les données stockées dans le localStorage n'ont pas de délai d'expiration, alors que les données stockées dans le sessionStorage sont nettoyées quand la session navigateur prend fin — donc quand on ferme le navigateur.
             localStorage.setItem(
               "tokenExpiration",
-              new Date().getTime() + result.expiresIn * 1000
+              new Date().getTime() + Number.parseInt(result.expiresIn) * 1000
             );
-            vuexContext.dispatch("setLogoutTimer", result.expiresIn * 1000);//*1000 because setTimeout is in milliseconds
+            Cookie.set("jwt", result.idToken);
+            Cookie.set(
+              "expirationDate",
+              new Date().getTime() + Number.parseInt(result.expiresIn) * 1000
+            );
           })
           .catch(e => console.log(e));
       },
-      setLogoutTimer(vuexContext, duration) {
-        setTimeout(() => {
-          vuexContext.commit("clearToken");
-        }, duration);
-      },
-      initAuth(vuexContext) {
-        const token = localStorage.getItem("token");
-        const expirationDate = localStorage.getItem("tokenExpiration");
+      initAuth(vuexContext, req) {
+        let token;
+        let expirationDate;
+        if (req) {
+          if (!req.headers.cookie) {
+            return;
+          }
+          const jwtCookie = req.headers.cookie
+            .split(";")
+            .find(c => c.trim().startsWith("jwt="));
+          if (!jwtCookie) {
+            return;
+          }
+          token = jwtCookie.split('=')[1];
+          expirationDate = req.headers.cookie
+            .split(";")
+            .find(c => c.trim().startsWith("expirationDate="))
+            .split("=")[1];
+        } else {
+          token = localStorage.getItem("token");
+          expirationDate = localStorage.getItem("tokenExpiration");
+        }
 
         if (new Date().getTime() > +expirationDate || !token) {
+          console.log('No token or invalid token');
+          vuexContext.dispatch("logout");
           return;
         }
-        vuexContext.dispatch('setLogoutTimer', +expirationDate - new Date().getTime());
         vuexContext.commit("setToken", token);
+      },
+      logout(vuexContext) {
+        vuexContext.commit("clearToken");
+        Cookie.remove("jwt");
+        Cookie.remove("expirationDate");
+        localStorage.removeItem("token");
+        localStorage.removeItem("tokenExpiration");
       }
     },
     getters: {
